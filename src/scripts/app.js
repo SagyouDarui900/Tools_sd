@@ -406,7 +406,7 @@
                 // キャラクターセレクトボックス構築
                 charSelect.innerHTML = state.characters.map((c, idx) => `
                     <option value="${idx}" ${idx === state.selectedIndex ? 'selected' : ''}>
-                        ${c.name} (${c.songs.length}曲 / ${c.totalPhonemes.toLocaleString()}音素)
+                        ${escapeHtml(c.name)} (${c.songs.length}曲 / ${c.totalPhonemes.toLocaleString()}音素)
                     </option>
                 `).join('');
 
@@ -465,7 +465,7 @@
                     .filter(k => !PREDEFINED_SET.has(k))
                     .forEach(ph => {
                         const count = currentChar.phonemesMap.get(ph).count;
-                        otherHtml += `<span class="chip">${ph}: ${count}</span>`;
+                        otherHtml += `<span class="chip">${escapeHtml(ph)}: ${count}</span>`;
                     });
                 otherContainer.innerHTML = otherHtml || '<span style="color: var(--text-muted);">その他なし</span>';
             }
@@ -537,19 +537,19 @@
                 container.innerHTML = currentChar.songs.map((song, idx) => `
                     <div class="panel" style="margin: 0; background-color: var(--bg-panel-secondary);">
                         <div class="flex-between mb-1">
-                            <span style="font-weight: 700; word-break: break-all;">${song.title}</span>
+                            <span style="font-weight: 700; word-break: break-all;">${escapeHtml(song.title)}</span>
                             <div style="display: flex; gap: 6px; align-items: center; flex-shrink: 0;">
                                 <span class="chip">${song.phonemeCount} 音素</span>
                                 <button class="btn btn-danger pdb-song-del-btn" data-idx="${idx}" style="padding: 2px 6px; font-size: 10px;">楽曲を削除</button>
                             </div>
                         </div>
                         <div style="font-size: 10px; color: var(--accent-primary); margin-bottom: 6px; word-break: break-all;">
-                            ${song.fullPath}
+                            ${escapeHtml(song.fullPath)}
                         </div>
                         <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">
                             再生時間: ${(song.playTime / 1000).toFixed(1)}s
                         </div>
-                        <textarea readonly style="height: 50px; font-size: 10px; color: var(--text-muted); width: 100%; border: 1px solid var(--border-color); background-color: var(--bg-panel); padding: 4px; resize: none;">${song.lyric || '歌詞データなし'}</textarea>
+                        <textarea readonly style="height: 50px; font-size: 10px; color: var(--text-muted); width: 100%; border: 1px solid var(--border-color); background-color: var(--bg-panel); padding: 4px; resize: none;">${escapeHtml(song.lyric || '歌詞データなし')}</textarea>
                     </div>
                 `).join('');
 
@@ -1002,6 +1002,14 @@
                 render();
             });
 
+            bgColorText.addEventListener('input', (e) => {
+                const val = e.target.value.trim();
+                if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+                    bgColorPicker.value = val;
+                    render();
+                }
+            });
+
             bgTolInput.addEventListener('input', () => {
                 render();
             });
@@ -1105,7 +1113,7 @@
 
                 if (rw < 4 || rh < 4) {
                     // 単一クリック -> BFS連結成分自動輪郭切り出し
-                    findSmartBoundsBFS(rx, ry);
+                    findSmartBoundsBFS(startX, startY);
                 } else {
                     const dragMode = dragModeSelect ? dragModeSelect.value : 'fit';
                     if (dragMode === 'fit') {
@@ -1133,6 +1141,11 @@
             overlayCanvas.addEventListener('touchend', handleCanvasEnd, { passive: false });
             overlayCanvas.addEventListener('touchcancel', () => { isDragging = false; renderOverlay(); });
 
+            // RGB色距離 (0-100)。findDragFitBounds、findSmartBoundsBFS、getProcessedSpriteCanvas で共通利用する。
+            function colorDistance(r, g, b, bgR, bgG, bgB) {
+                return Math.sqrt((r - bgR) ** 2 + (g - bgG) ** 2 + (b - bgB) ** 2) / 441.67 * 100;
+            }
+
             // ドラッグ範囲内の全不透明ピクセル（前景）の最小外接矩形を計算（火・光・複数小オブジェクト統合）
             function findDragFitBounds(rx, ry, rw, rh) {
                 const cropImgData = ctxImg.getImageData(rx, ry, rw, rh);
@@ -1157,7 +1170,7 @@
                             const r = data[idx];
                             const g = data[idx + 1];
                             const b = data[idx + 2];
-                            const dist = Math.sqrt((r - bgR) ** 2 + (g - bgG) ** 2 + (b - bgB) ** 2) / 441.67 * 100;
+                            const dist = colorDistance(r, g, b, bgR, bgG, bgB);
                             isFg = dist > tol;
                         }
 
@@ -1209,7 +1222,7 @@
                         const r = data[idx];
                         const g = data[idx + 1];
                         const b = data[idx + 2];
-                        const dist = Math.sqrt((r - bgR) ** 2 + (g - bgG) ** 2 + (b - bgB) ** 2) / 441.67 * 100;
+                        const dist = colorDistance(r, g, b, bgR, bgG, bgB);
                         return dist > tol;
                     }
                 }
@@ -1248,6 +1261,8 @@
                         }
                     }
                 }
+
+                queue.length = 0;
 
                 addSprite({ x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 });
             }
@@ -1318,7 +1333,7 @@
             // スプライト単体を透過処理したオフスクリーンCanvasを生成（高速化キャッシュ付き）
             function getProcessedSpriteCanvas(s) {
                 const isColorMode = bgMode.value === 'color';
-                const cacheKey = `${s.id}_${s.rect.x}_${s.rect.y}_${s.rect.w}_${s.rect.h}_${isColorMode ? bgColorPicker.value + '_' + bgTolInput.value : 'none'}`;
+                const cacheKey = `${s.id}_${s.rect.x}_${s.rect.y}_${s.rect.w}_${s.rect.h}_${isColorMode ? bgColorPicker.value + '_' + parseFloat(bgTolInput.value) : 'none'}`;
                 if (s._cachedCanvas && s._cacheKey === cacheKey) {
                     return s._cachedCanvas;
                 }
@@ -1338,7 +1353,7 @@
                     const cropImgData = ctxImg.getImageData(s.rect.x, s.rect.y, s.rect.w, s.rect.h);
                     const d = cropImgData.data;
                     for (let i = 0; i < d.length; i += 4) {
-                        const dist = Math.sqrt((d[i] - bgR) ** 2 + (d[i + 1] - bgG) ** 2 + (d[i + 2] - bgB) ** 2) / 441.67 * 100;
+                        const dist = colorDistance(d[i], d[i + 1], d[i + 2], bgR, bgG, bgB);
                         if (dist <= tol) d[i + 3] = 0;
                     }
                     tempCtx.putImageData(cropImgData, 0, 0);
@@ -1452,7 +1467,11 @@
                         delBtn.addEventListener('click', (e) => {
                             e.stopPropagation();
                             pushSpriteHistory();
-                            sprites = sprites.filter(item => item.id !== s.id);
+                            sprites = sprites.filter(sp => sp.id !== s.id);
+                            if (sprites.length === 0) {
+                                stopAnimation();
+                                animCurrentFrame = 0;
+                            }
                             render();
                         });
                     }
@@ -1652,6 +1671,8 @@
             // Undo (Ctrl+Z)
             document.addEventListener('keydown', (e) => {
                 if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+                const spriteView = document.getElementById('view-sprite-cutter');
+                if (!spriteView || !spriteView.classList.contains('active')) return;
                 if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
                     if (history.length) {
                         sprites = JSON.parse(history.pop());
@@ -1666,13 +1687,9 @@
                     document.querySelectorAll('.sprite-bg-btn').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
                     const bg = btn.dataset.bg;
-                    if (bg === 'checker') {
-                        document.getElementById('spriteCanvasContainer').className = 'checkerboard';
-                        document.getElementById('spriteCanvasContainer').style.backgroundColor = '';
-                    } else {
-                        document.getElementById('spriteCanvasContainer').className = '';
-                        document.getElementById('spriteCanvasContainer').style.backgroundColor = bg;
-                    }
+                    const container = document.getElementById('spriteCanvasContainer');
+                    container.classList.toggle('checkerboard', bg === 'checker');
+                    container.style.backgroundColor = bg === 'checker' ? '' : bg;
                 });
             });
         })();
@@ -1793,9 +1810,9 @@
                     const baseName = i.file.name.replace(/\.[^/.]+$/, "") || i.file.name;
                     return `
                     <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px; border: 1px solid var(--border-color); background-color: var(--bg-panel);">
-                        <span style="font-weight: 600; font-size: 11px;">${i.file.name}</span>
+                        <span style="font-weight: 600; font-size: 11px;">${escapeHtml(i.file.name)}</span>
                         <div>
-                            ${i.status === 'done' ? `<a href="${i.url}" download="${baseName}_conv.${fmt}" class="btn btn-primary" style="padding: 2px 6px; font-size: 10px;">保存</a>` : ''}
+                            ${i.status === 'done' ? `<a href="${i.url}" download="${escapeHtml(baseName)}_conv.${fmt}" class="btn btn-primary" style="padding: 2px 6px; font-size: 10px;">保存</a>` : ''}
                             <span class="chip">${i.status}</span>
                         </div>
                     </div>
@@ -1878,8 +1895,8 @@
                     <div class="checkerboard" style="border: 1px solid var(--border-color); height: 120px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
                         <img src="${url}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
                     </div>
-                    <div style="font-size: 11px; font-weight: 700; margin-bottom: 6px;">${name} (${w}x${h}px)</div>
-                    <a href="${url}" download="${name}" class="btn btn-primary" style="width: 100%; text-align: center;">保存</a>
+                    <div style="font-size: 11px; font-weight: 700; margin-bottom: 6px;">${escapeHtml(name)} (${w}x${h}px)</div>
+                    <a href="${url}" download="${escapeHtml(name)}" class="btn btn-primary" style="width: 100%; text-align: center;">保存</a>
                 `;
                 results.appendChild(card);
             }
@@ -2249,8 +2266,8 @@
                         <div class="checkerboard" style="border: 1px solid var(--border-color); height: 100px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px;">
                             <img src="${img.url}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
                         </div>
-                        <div style="font-size: 11px; font-weight: 700; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${img.name}</div>
-                        <a href="${img.url}" download="${img.name}" class="btn btn-primary" style="width: 100%; text-align: center;">保存</a>
+                        <div style="font-size: 11px; font-weight: 700; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(img.name)}</div>
+                        <a href="${img.url}" download="${escapeHtml(img.name)}" class="btn btn-primary" style="width: 100%; text-align: center;">保存</a>
                     `;
                     gallery.appendChild(card);
                 });
@@ -4188,7 +4205,7 @@
                             <button class="btn btn-primary card-copy-btn" style="padding: 2px 8px; font-size: 10.5px;">コピー</button>
                         </div>
                         <div style="font-size: 13.5px; font-weight: 500; font-family: monospace; color: var(--text-heading); word-break: break-all; margin-top: 4px; background: var(--bg-main); padding: 6px 8px; border: 1px solid var(--border-color);">
-                            ${res.text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+                            ${escapeHtml(res.text)}
                         </div>
                     `;
 
@@ -4328,8 +4345,8 @@
 
                             entries.forEach(([k, v]) => {
                                 html += `<tr style="border-bottom: 1px dashed var(--border-color);">
-                                    <td style="padding: 4px 8px; font-weight: 700; color: var(--accent-cyan); font-family: monospace;">${k.replace(/</g, '&lt;')}</td>
-                                    <td style="padding: 4px 8px; font-family: monospace; color: var(--text-heading); word-break: break-all;">${v.replace(/</g, '&lt;')}</td>
+                                    <td style="padding: 4px 8px; font-weight: 700; color: var(--accent-cyan); font-family: monospace;">${escapeHtml(k)}</td>
+                                    <td style="padding: 4px 8px; font-family: monospace; color: var(--text-heading); word-break: break-all;">${escapeHtml(v)}</td>
                                 </tr>`;
                             });
 
