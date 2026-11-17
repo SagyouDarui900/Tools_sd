@@ -1,5 +1,8 @@
 // Service Worker for Offline Caching on GitHub Pages
-const CACHE_NAME = 'tools-app-cache-v1';
+// NOTE: Bump CACHE_NAME on every release that changes cached files,
+// otherwise the first load after a deploy serves the previous bundle
+// (stale-while-revalidate) until the next reload.
+const CACHE_NAME = 'tools-app-cache-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
