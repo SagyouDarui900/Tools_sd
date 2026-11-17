@@ -1,0 +1,136 @@
+/* ==========================================================================
+   MOBILE-ONLY STYLES (max-width: 639px)
+   スマホ専用の調整。640px 以上の表示はこのファイルでは一切変えない。
+   既存の max-width: 768px ブロック（text-counter.css）で対応済みのものは
+   ここでは重ねない。文字サイズの下限は 11px、タップ対象は 40px を目安。
+   ========================================================================== */
+@media (max-width: 639px) {
+    /* --- 横スクロール防止（動的生成コンテンツの安全網） --- */
+    #workspace {
+        overflow-x: hidden;
+    }
+
+    /* --- タップ対象 40px --- */
+    .btn {
+        min-height: 40px;
+    }
+    input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        min-width: 20px;
+    }
+    input[type="color"] {
+        width: 44px !important;
+        height: 40px !important;
+        min-width: 44px !important;
+        min-height: 40px !important;
+    }
+    input[type="range"] {
+        width: 100%;
+    }
+    /* 密集したツールバー類は 36px にとどめる（40px にすると行が嵩みすぎる） */
+    .md-tool-btn {
+        height: 36px;
+        min-height: 36px;
+        min-width: 36px;
+    }
+    .sprite-zoom-btn,
+    .sprite-zoom-select {
+        height: 36px;
+        min-height: 36px;
+    }
+    .sprite-btn-move {
+        height: 36px;
+        min-height: 36px;
+        min-width: 36px;
+    }
+
+    /* --- iOS Safari のフォーカス時自動ズーム防止（16px 未満だとズームする） --- */
+    input[type="text"],
+    input[type="number"],
+    select,
+    textarea {
+        font-size: 16px;
+    }
+
+    /* --- flex 行の折り返し（360px 幅ではみ出す行） --- */
+    .flex-between {
+        flex-wrap: wrap;
+    }
+    /* 音素DBのタブ行（3ボタンで約380pxになる） */
+    #pdbMainContent > div:first-child {
+        flex-wrap: wrap;
+    }
+    /* 文字化けのタブ行 */
+    div:has(> #mbTabFixer) {
+        flex-wrap: wrap;
+    }
+    /* スプライト: 背景色指定行（ピッカー＋入力＋許容値で幅が足りない） */
+    #spriteBgColorGroup {
+        flex-wrap: wrap;
+    }
+    /* スプライト: キャンバス背景表示ボタン行（ラベル＋4ボタンで約390pxになる） */
+    div:has(> .sprite-bg-btn) {
+        flex-wrap: wrap;
+    }
+    /* クロマキー: 色指定行（ピッカー＋入力＋スポイトボタンで幅が足りない） */
+    div:has(> #chromaColorPicker) {
+        flex-wrap: wrap;
+    }
+
+    /* --- flex 内の入力欄が既定幅（約170px）で縮まない問題の解消 --- */
+    #workspace input[type="text"],
+    #workspace input[type="number"],
+    #workspace select {
+        min-width: 0;
+    }
+    /* REAPER パス置換の前後入力欄（180px 固定）を可変幅にする */
+    #rpOldPath,
+    #rpNewPath {
+        flex: 1 1 140px;
+        width: auto !important;
+        min-width: 140px;
+    }
+
+    /* --- スプライト最大化モード（PC用に 1fr 360px 固定で、360px幅では破綻する） --- */
+    #view-sprite-cutter.sprite-view-maximized {
+        overflow-y: auto !important;
+    }
+    #view-sprite-cutter.sprite-view-maximized .sprite-workspace-grid {
+        grid-template-columns: 1fr !important;
+    }
+    #view-sprite-cutter.sprite-view-maximized #spriteCanvasContainer {
+        min-height: 300px;
+    }
+
+    /* --- スプライト編集キャンバスの高さ（380px はスマホ画面の大半を占める） --- */
+    #spriteCanvasContainer {
+        min-height: 300px;
+    }
+
+    /* --- Markdown プレビュー内の表（幅広の表がはみ出す） --- */
+    .md-preview-container table {
+        display: block;
+        overflow-x: auto;
+    }
+
+    /* --- トースト（右端 24px 固定だと長い文言がはみ出す） --- */
+    .tc-toast {
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+        text-align: center;
+    }
+
+    /* --- 文字サイズの下限 11px（既存の 10px〜10.5px 表記を底上げ） --- */
+    .chip,
+    .tc-kpi-sub,
+    .tc-breakdown-pct,
+    .tc-toolbar-group span,
+    .md-toolbar-group span,
+    .code-copy-btn,
+    #spriteResolutionBadge,
+    #mdDiscordStatusBadge {
+        font-size: 11px;
+    }
+}
