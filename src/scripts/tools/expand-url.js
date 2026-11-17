@@ -12,6 +12,8 @@ import { showToast, escapeHtml } from '../core/utils.js';
             if (!inputEl || !resultsContainer) return;
 
             let lastExpandedFinalUrls = [];
+            const isStaticHost = window.location.hostname.endsWith('github.io') || window.location.protocol === 'file:';
+            let serverApiAvailable = !isStaticHost;
 
             async function expandSingleUrl(urlStr) {
                 let target = urlStr.trim();
@@ -20,20 +22,26 @@ import { showToast, escapeHtml } from '../core/utils.js';
                     target = 'https://' + target;
                 }
 
-                // Primary: Internal Express API
-                try {
-                    const res = await fetch('/api/expand-url', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ url: target })
-                    });
-                    if (res.ok) {
-                        const data = await res.json();
-                        return data;
+                // Primary: Internal Express API (when running Node.js server)
+                if (serverApiAvailable) {
+                    try {
+                        const res = await fetch('/api/expand-url', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ url: target })
+                        });
+                        if (res.ok) {
+                            return await res.json();
+                        }
+                        if (res.status === 404 || res.status === 405) {
+                            serverApiAvailable = false;
+                        }
+                    } catch(e) {
+                        serverApiAvailable = false;
                     }
-                } catch(e) {}
+                }
 
-                // Fallback: Public unshorten API
+                // Fallback: Public unshorten API for static hosting (GitHub Pages)
                 try {
                     const res = await fetch(`https://unshorten.me/api/v2/unshorten?url=${encodeURIComponent(target)}`);
                     if (res.ok) {
@@ -68,7 +76,7 @@ import { showToast, escapeHtml } from '../core/utils.js';
                             <div style="font-size: 11.5px; margin-top: 4px;">bit.ly, t.co, tinyurl などの短縮URLを上に貼り付けてください</div>
                         </div>
                     `;
-                    if (statusBadge) statusBadge.textContent = '';
+                    if (statusBadge) statusBadge.textContent = isStaticHost ? '静的環境モード (外部API経由 / 制限あり)' : '';
                     if (copyAllBtn) copyAllBtn.disabled = true;
                     if (userTriggered) showToast('短縮URLを入力してください');
                     return;
@@ -81,17 +89,27 @@ import { showToast, escapeHtml } from '../core/utils.js';
                 lastExpandedFinalUrls = [];
                 if (statusBadge) statusBadge.textContent = `${urls.length}件の短縮URLを解析中...`;
 
+                let failedCount = 0;
                 for (let i = 0; i < urls.length; i++) {
                     const res = await expandSingleUrl(urls[i]);
                     if (res) {
+                        if (res.status === 'fallback') failedCount++;
                         lastExpandedFinalUrls.push(res.finalUrl);
                         renderResultCard(res, i + 1);
                     }
                 }
 
-                if (statusBadge) statusBadge.textContent = `${urls.length}件の短縮URLの展開が完了しました`;
+                if (statusBadge) {
+                    statusBadge.textContent = failedCount > 0
+                        ? `${urls.length}件処理 (${failedCount}件は静的環境/CORS制限により展開不可)`
+                        : `${urls.length}件の短縮URLの展開が完了しました`;
+                }
                 if (copyAllBtn) copyAllBtn.disabled = false;
-                if (userTriggered) showToast(`${urls.length}件の短縮URLを展開しました`);
+                if (userTriggered) {
+                    showToast(failedCount > 0
+                        ? `完了 (一部展開不可: 静的環境ではローカルサーバー実行を推奨)`
+                        : `${urls.length}件の短縮URLを展開しました`);
+                }
             }
 
             function renderResultCard(data, index) {
@@ -102,11 +120,20 @@ import { showToast, escapeHtml } from '../core/utils.js';
                 card.style.borderRadius = '6px';
                 card.style.padding = '14px';
 
+                const isFallback = data.status === 'fallback';
                 const isRedirected = data.redirectCount > 0;
                 let parsedFinal = null;
                 try {
                     parsedFinal = new URL(data.finalUrl);
                 } catch(e) {}
+                const isSafeHttp = parsedFinal && (parsedFinal.protocol === 'http:' || parsedFinal.protocol === 'https:');
+
+                const statusBadgeStyle = isFallback
+                    ? 'background-color: rgba(239,68,68,0.15); color: #ef4444;'
+                    : (isRedirected ? 'background-color: rgba(34,197,94,0.15); color: #22c55e;' : 'opacity: 0.6;');
+                const statusBadgeText = isFallback
+                    ? '展開不可 (静的環境/CORS制限)'
+                    : (isRedirected ? `転送あり (${data.redirectCount}回リダイレクト)` : 'ダイレクト');
 
                 card.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
@@ -114,8 +141,8 @@ import { showToast, escapeHtml } from '../core/utils.js';
                             <span style="background-color: var(--accent-primary); color: #fff; font-size: 11px; padding: 1px 6px; border-radius: 3px; font-weight: 700;">#${index}</span>
                             <span style="word-break: break-all;">${escapeHtml(data.originalUrl)}</span>
                         </div>
-                        <span class="badge" style="font-size: 11px; ${isRedirected ? 'background-color: rgba(34,197,94,0.15); color: #22c55e;' : 'opacity: 0.6;'}">
-                            ${isRedirected ? `転送あり (${data.redirectCount}回リダイレクト)` : 'ダイレクト'}
+                        <span class="badge" style="font-size: 11px; ${statusBadgeStyle}">
+                            ${statusBadgeText}
                         </span>
                     </div>
 
@@ -157,9 +184,11 @@ import { showToast, escapeHtml } from '../core/utils.js';
                         <button class="btn btn-primary btn-copy-final" style="padding: 4px 12px; font-size: 11.5px;">
                             展開後URLをコピー
                         </button>
-                        <a href="${escapeHtml(data.finalUrl)}" target="_blank" rel="noopener noreferrer" class="btn" style="padding: 4px 12px; font-size: 11.5px; text-decoration: none;">
-                            展開後ページを開く
-                        </a>
+                        ${isSafeHttp ? `
+                            <a href="${escapeHtml(data.finalUrl)}" target="_blank" rel="noopener noreferrer" class="btn" style="padding: 4px 12px; font-size: 11.5px; text-decoration: none;">
+                                展開後ページを開く
+                            </a>
+                        ` : ''}
                     </div>
                 `;
 

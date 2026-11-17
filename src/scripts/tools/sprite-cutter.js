@@ -301,7 +301,7 @@ import { showToast, setupDropZone, colorDistance } from '../core/utils.js';
 
                 if (rw < 4 || rh < 4) {
                     // 単一クリック -> BFS連結成分自動輪郭切り出し
-                    findSmartBoundsBFS(startX, startY);
+                    findSmartBoundsBFS(rx, ry);
                 } else {
                     const dragMode = dragModeSelect ? dragModeSelect.value : 'fit';
                     if (dragMode === 'fit') {
@@ -753,6 +753,7 @@ import { showToast, setupDropZone, colorDistance } from '../core/utils.js';
                 animCtx.drawImage(processedCanvas, dx, dy, dw, dh);
             }
 
+            let animLastTime = 0;
             function startAnimation() {
                 if (sprites.length === 0) return;
                 isPlayingAnim = true;
@@ -764,21 +765,29 @@ import { showToast, setupDropZone, colorDistance } from '../core/utils.js';
                 const fps = Math.min(60, Math.max(1, parseInt(animFpsInput ? animFpsInput.value : 10, 10) || 10));
                 const interval = 1000 / fps;
 
-                if (animTimer) clearInterval(animTimer);
-                animTimer = setInterval(() => {
+                if (animTimer) cancelAnimationFrame(animTimer);
+                animLastTime = performance.now();
+
+                function tick(now) {
+                    if (!isPlayingAnim) return;
                     if (sprites.length === 0) {
                         stopAnimation();
                         return;
                     }
-                    animCurrentFrame = (animCurrentFrame + 1) % sprites.length;
-                    updateAnimPreview();
-                }, interval);
+                    if (!document.hidden && now - animLastTime >= interval) {
+                        animLastTime = now - ((now - animLastTime) % interval);
+                        animCurrentFrame = (animCurrentFrame + 1) % sprites.length;
+                        updateAnimPreview();
+                    }
+                    animTimer = requestAnimationFrame(tick);
+                }
+                animTimer = requestAnimationFrame(tick);
             }
 
             function stopAnimation() {
                 isPlayingAnim = false;
                 if (animTimer) {
-                    clearInterval(animTimer);
+                    cancelAnimationFrame(animTimer);
                     animTimer = null;
                 }
                 if (animPlayBtn) {
@@ -787,6 +796,12 @@ import { showToast, setupDropZone, colorDistance } from '../core/utils.js';
                     animPlayBtn.classList.add('btn-primary');
                 }
             }
+
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden && isPlayingAnim) {
+                    animLastTime = performance.now();
+                }
+            });
 
             if (animPlayBtn) {
                 animPlayBtn.addEventListener('click', () => {

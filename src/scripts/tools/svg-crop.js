@@ -31,10 +31,22 @@ import { addSuffixC, setupDropZone } from '../core/utils.js';
                 reader.readAsText(file);
             }
 
+            function sanitizeSvgDoc(doc) {
+                doc.querySelectorAll('script').forEach(el => el.remove());
+                doc.querySelectorAll('*').forEach(el => {
+                    Array.from(el.attributes).forEach(attr => {
+                        if (attr.name.toLowerCase().startsWith('on')) {
+                            el.removeAttribute(attr.name);
+                        }
+                    });
+                });
+            }
+
             function processSvg() {
                 calcContainer.innerHTML = '';
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(origSvgStr, 'image/svg+xml');
+                sanitizeSvgDoc(doc);
                 const svgEl = doc.documentElement;
 
                 calcContainer.appendChild(svgEl.cloneNode(true));
@@ -67,6 +79,7 @@ import { addSuffixC, setupDropZone } from '../core/utils.js';
 
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(origSvgStr, 'image/svg+xml');
+                sanitizeSvgDoc(doc);
                 const svg = doc.documentElement;
                 svg.removeAttribute('width');
                 svg.removeAttribute('height');

@@ -115,8 +115,8 @@ import { escapeHtml, setupDropZone } from '../core/utils.js';
                     <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px; border: 1px solid var(--border-color); background-color: var(--bg-panel);">
                         <span style="font-weight: 600; font-size: 11px;">${escapeHtml(i.file.name)}</span>
                         <div>
-                            ${i.status === 'done' ? `<a href="${i.url}" download="${escapeHtml(baseName)}_conv.${fmt}" class="btn btn-primary" style="padding: 2px 6px; font-size: 10px;">保存</a>` : ''}
-                            <span class="chip">${i.status}</span>
+                            ${i.status === 'done' ? `<a href="${i.url}" download="${escapeHtml(baseName)}_conv.${escapeHtml(fmt)}" class="btn btn-primary" style="padding: 2px 6px; font-size: 10px;">保存</a>` : ''}
+                            <span class="chip">${escapeHtml(i.status)}</span>
                         </div>
                     </div>
                 `}).join('');

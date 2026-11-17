@@ -210,7 +210,7 @@ import { escapeHtml } from '../core/utils.js';
 
                 GOJUON_MATRIX.forEach(group => {
                     let html = `<div style="display: flex; flex-direction: column; gap: 4px; direction: ltr;">`;
-                    html += `<label>${group.title}</label><div style="display: flex; gap: 4px;">`;
+                    html += `<label>${escapeHtml(group.title)}</label><div style="display: flex; gap: 4px;">`;
 
                     for (let i = group.data.length - 1; i >= 0; i--) {
                         let col = group.data[i];
@@ -227,7 +227,7 @@ import { escapeHtml } from '../core/utils.js';
                                 else if (count >= 50) cls = 'count-high';
 
                                 html += `<div class="phoneme-cell ${cls}" data-count="${count}">
-                                    <span>${ph}</span>
+                                    <span>${escapeHtml(ph)}</span>
                                     ${count > 0 ? `<span style="font-size: 9px; opacity: 0.8;">${count}</span>` : ''}
                                 </div>`;
                             }

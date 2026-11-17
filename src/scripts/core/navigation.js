@@ -58,8 +58,8 @@ function setDesktopSidebar(collapsed, save = true) {
     if (sidebarToggleBtn) {
         sidebarToggleBtn.classList.toggle('active', collapsed);
         sidebarToggleBtn.title = collapsed 
-            ? 'サイドバーを表示 (標準表示に戻す / Alt+M)' 
-            : 'サイドバーを折りたたむ (画面を広く使う / Alt+M)';
+            ? 'サイドバーを表示 (標準表示に戻す / Alt+M または [)' 
+            : 'サイドバーを折りたたむ (画面を広く使う / Alt+M または [)';
     }
 
     if (save) {
@@ -83,7 +83,7 @@ if (sidebarToggleBtn) {
     });
 }
 
-// Keyboard Shortcut: Alt+M to toggle sidebar / wide view mode
+// Keyboard Shortcut: Alt+M or '[' to toggle sidebar / wide view mode
 window.addEventListener('keydown', (e) => {
     if (e.altKey && (e.key === 'm' || e.key === 'M')) {
         e.preventDefault();
@@ -97,7 +97,7 @@ window.addEventListener('keydown', (e) => {
     }
     if (e.key === '[' && !e.ctrlKey && !e.altKey && !e.metaKey) {
         const target = e.target;
-        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable)) {
             return;
         }
         e.preventDefault();

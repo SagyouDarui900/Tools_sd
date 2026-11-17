@@ -161,7 +161,7 @@ import { showToast, escapeHtml } from '../core/utils.js';
                     card.innerHTML = `
                         <div class="flex-between mb-1">
                             <span style="font-weight: 700; font-size: 11.5px; color: ${idx === 0 ? 'var(--accent-green)' : 'var(--text-heading)'};">
-                                ${res.title}
+                                ${escapeHtml(res.title)}
                             </span>
                             <button class="btn btn-primary card-copy-btn" style="padding: 2px 8px; font-size: 10.5px;">コピー</button>
                         </div>

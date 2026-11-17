@@ -1,6 +1,5 @@
 // DAW-like Solid Web Tools Application Entry Point
 import '../styles/main.css';
-import './app.js';
 import './tools/phoneme-db.js';
 import './tools/spectrogram.js';
 import './tools/sprite-cutter.js';

@@ -397,21 +397,24 @@ import { showToast, escapeHtml } from '../core/utils.js';
             }
 
             async function fetchImageAsBlob(url) {
-                // 1. Try server proxy (bypasses YouTube CDN CORS restrictions)
-                try {
-                    const proxyRes = await fetch('/api/proxy-image?url=' + encodeURIComponent(url));
-                    if (proxyRes.ok) {
-                        return await proxyRes.blob();
-                    }
-                } catch(e) {}
-
-                // 2. Try direct fetch
+                // 1. Try direct CORS fetch first (works on GitHub Pages without server proxy)
                 try {
                     const directRes = await fetch(url, { mode: 'cors' });
                     if (directRes.ok) {
                         return await directRes.blob();
                     }
                 } catch(e) {}
+
+                // 2. Fallback to server proxy when running with Express backend
+                const isStaticOnlyHost = window.location.hostname.endsWith('github.io') || window.location.protocol === 'file:';
+                if (!isStaticOnlyHost) {
+                    try {
+                        const proxyRes = await fetch('/api/proxy-image?url=' + encodeURIComponent(url));
+                        if (proxyRes.ok) {
+                            return await proxyRes.blob();
+                        }
+                    } catch(e) {}
+                }
 
                 // 3. Fallback to image element + canvas
                 return new Promise((resolve) => {
