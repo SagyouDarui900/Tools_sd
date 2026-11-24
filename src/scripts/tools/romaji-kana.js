@@ -40,7 +40,8 @@
             function convert() {
                 let t = input.value.toLowerCase();
                 t = t.replace(/ā/g, 'あー').replace(/ī/g, 'いー').replace(/ū/g, 'うー').replace(/ē/g, 'えー').replace(/ō/g, 'おー');
-                t = t.replace(/nn/g, 'ん');
+                // nnの後に母音が続く場合は2つ目のnが次の音節の頭子音 (例: konnichiha の nn → ん + に) なので置換しない
+                t = t.replace(/nn(?![aeiou])/g, 'ん');
                 t = t.replace(/n(?=[bcdfghjklmpqrstvwxz]|$|\s|[!?,.'])/g, 'ん');
                 t = t.replace(/([bcdfghjklmpqrstvwxyz])\1/g, 'っ$1');
 
